@@ -127,7 +127,7 @@ export const robot = (app: Probot) => {
         try {
           const res = await chat?.codeReview(patch);
 
-          if (!!res) {
+          if (!!res && (res.search('No issues found') !== -1) ) {
             await context.octokit.pulls.createReviewComment({
               repo: repo.repo,
               owner: repo.owner,
