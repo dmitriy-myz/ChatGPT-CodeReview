@@ -85,9 +85,9 @@ export const robot = (app: Probot) => {
       // `created` belongs to the `issue_comment` event
       // `labeled` belongs to the `pull_request` event
       if (
-        (context.payload.action === "synchronize" ||
-          context.payload.action === "created" ||
-          context.payload.action === "labeled") &&
+        (context.payload.action === 'synchronize' ||
+          context.payload.action === 'created' ||
+          context.payload.action === 'labeled') &&
         commits.length >= 2
       ) {
         const {
