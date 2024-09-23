@@ -42,7 +42,7 @@ export const robot = (app: Probot) => {
   };
 
   app.on(
-    ['pull_request.opened', 'pull_request.synchronize', 'pull_request_target.labeled', 'issue_comment.created'],
+    ['pull_request.opened', 'pull_request.synchronize', 'pull_request.labeled', 'issue_comment.created'],
     async (context) => {
       const repo = context.repo();
       const chat = await loadChat(context);
@@ -55,8 +55,8 @@ export const robot = (app: Probot) => {
       const pull_request = context.payload.pull_request;
 
       if (
-        pull_request.state === 'closed' ||
-        pull_request.locked
+        pull_request?.state === 'closed' ||
+        pull_request?.locked
       ) {
         console.log('invalid event payload');
         return 'invalid event payload';
