@@ -52,11 +52,23 @@ export const robot = (app: Probot) => {
         return 'no chat';
       }
 
-      const pull_request = context.payload.pull_request;
+      let pull_request;
 
       if (
-        pull_request?.state === 'closed' ||
-        pull_request?.locked
+        context.event_name === 'issue_comment'
+      ) {
+        pull_request = await context.octokit.pulls.get({
+          owner: repo.owner,
+          repo: repo.repo,
+          pull_number: context.payload.issue.number,
+        });
+      } else {
+        pull_request = context.payload.pull_request;
+      }
+
+      if (
+        pull_request.state === 'closed' ||
+        pull_request.locked
       ) {
         console.log('invalid event payload');
         return 'invalid event payload';
@@ -75,8 +87,8 @@ export const robot = (app: Probot) => {
       const data = await context.octokit.repos.compareCommits({
         owner: repo.owner,
         repo: repo.repo,
-        base: context.payload.pull_request.base.sha,
-        head: context.payload.pull_request.head.sha,
+        base: pull_request.base.sha,
+        head: pull_request.head.sha,
       });
 
       let { files: changedFiles, commits } = data.data;
@@ -139,7 +151,7 @@ export const robot = (app: Probot) => {
             await context.octokit.pulls.createReviewComment({
               repo: repo.repo,
               owner: repo.owner,
-              pull_number: context.pullRequest().pull_number,
+              pull_number: pull_request.number,
               commit_id: commits[commits.length - 1].sha,
               path: file.filename,
               body: res,
@@ -154,7 +166,7 @@ export const robot = (app: Probot) => {
       console.timeEnd('gpt cost');
       console.info(
         'successfully reviewed',
-        context.payload.pull_request.html_url
+        pull_request.html_url
       );
 
       return 'success';
