@@ -55,7 +55,7 @@ export const robot = (app: Probot) => {
       let pull_request;
 
       if (
-        context.eventName === 'issue_comment'
+        context.event_name === 'issue_comment'
       ) {
         pull_request = await context.octokit.pulls.get({
           owner: repo.owner,
