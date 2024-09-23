@@ -42,7 +42,7 @@ export const robot = (app: Probot) => {
   };
 
   app.on(
-    ['pull_request.opened', 'pull_request.synchronize'],
+    ['pull_request.opened', 'pull_request.synchronize', 'pull_request_target.labeled', 'issue_comment.created'],
     async (context) => {
       const repo = context.repo();
       const chat = await loadChat(context);
@@ -81,7 +81,15 @@ export const robot = (app: Probot) => {
 
       let { files: changedFiles, commits } = data.data;
 
-      if (context.payload.action === 'synchronize' && commits.length >= 2) {
+      // `synchronize` belongs to the 'pull_request' event
+      // `created` belongs to the `issue_comment` event
+      // `labeled` belongs to the `pull_request` event
+      if (
+        (context.payload.action === "synchronize" ||
+          context.payload.action === "creted" ||
+          context.payload.action === "labeled") &&
+        commits.length >= 2
+      ) {
         const {
           data: { files },
         } = await context.octokit.repos.compareCommits({
