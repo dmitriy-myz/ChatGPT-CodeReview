@@ -55,13 +55,13 @@ export const robot = (app: Probot) => {
       let pull_request;
 
       if (
-        context.eventName === 'issue_comment'
+        context.name === 'issue_comment' && context.payload.issue.pull_request
       ) {
         console.log('Getting the pull_request data from the API');
         pull_request = await context.octokit.pulls.get({
           owner: repo.owner,
           repo: repo.repo,
-          pull_number: context.payload.issue.number,
+          pull_number: context.payload.issue.pull_request.number,
         });
       } else {
         pull_request = context.payload.pull_request;
@@ -101,7 +101,7 @@ export const robot = (app: Probot) => {
         (context.payload.action === 'synchronize' ||
           context.payload.action === 'created' ||
           context.payload.action === 'labeled') &&
-        commits.length >= 2
+          commits && commits.length >= 2
       ) {
         const {
           data: { files },
