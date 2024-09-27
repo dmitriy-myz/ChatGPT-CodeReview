@@ -54,9 +54,9 @@ export const robot = (app: Probot) => {
 
       let pull_request;
 
-      if (
-        context.name === 'issue_comment' && context.payload.issue.pull_request
-      ) {
+      if (context.name === 'pull_request' && context.payload.pull_request) {
+        pull_request = context.payload.pull_request;
+      } else if (context.name === 'issue_comment' && context.payload.issue.pull_request) {
         const pr_from_api = await context.octokit.pulls.get({
           owner: repo.owner,
           repo: repo.repo,
@@ -64,8 +64,11 @@ export const robot = (app: Probot) => {
         });
         pull_request = pr_from_api.data;
         console.log('Retrieved pull_request data from the API:', pull_request);
-      } else {
-        pull_request = context.payload.pull_request;
+      }
+
+      if (!pull_request) {
+        console.log('pull_request is undefined');
+        return 'pull_request is undefined';
       }
 
       if (
