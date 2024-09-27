@@ -95,6 +95,7 @@ export const robot = (app: Probot) => {
       const target_label = process.env.TARGET_LABEL;
       if (
         target_label &&
+        is_pr_labeled &&
         (!pull_request.labels?.length ||
           pull_request.labels.every((label) => label.name !== target_label))
       ) {
