@@ -1,4 +1,4 @@
-import { run } from "probot";
-import { robot } from "./bot.js";
+import { run } from 'probot';
+import { robot } from './bot.js';
 
-run(robot)
+run(robot);
