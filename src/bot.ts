@@ -42,7 +42,12 @@ export const robot = (app: Probot) => {
   };
 
   app.on(
-    ['pull_request.opened', 'pull_request.synchronize', 'pull_request.labeled', 'issue_comment.created'],
+    [
+      'pull_request.opened',
+      'pull_request.synchronize',
+      'pull_request.labeled',
+      'issue_comment.created',
+    ],
     async (context) => {
       const repo = context.repo();
       const chat = await loadChat(context);
@@ -56,7 +61,10 @@ export const robot = (app: Probot) => {
 
       if (context.name === 'pull_request' && context.payload.pull_request) {
         pull_request = context.payload.pull_request;
-      } else if (context.name === 'issue_comment' && context.payload.issue.pull_request) {
+      } else if (
+        context.name === 'issue_comment' &&
+        context.payload.issue.pull_request
+      ) {
         const pr_from_api = await context.octokit.pulls.get({
           owner: repo.owner,
           repo: repo.repo,
@@ -71,10 +79,7 @@ export const robot = (app: Probot) => {
         return 'pull_request is undefined';
       }
 
-      if (
-        pull_request.state === 'closed' ||
-        pull_request.locked
-      ) {
+      if (pull_request.state === 'closed' || pull_request.locked) {
         console.log('invalid event payload');
         return 'invalid event payload';
       }
@@ -105,7 +110,8 @@ export const robot = (app: Probot) => {
         (context.payload.action === 'synchronize' ||
           context.payload.action === 'created' ||
           context.payload.action === 'labeled') &&
-          commits && commits.length >= 2
+        commits &&
+        commits.length >= 2
       ) {
         const {
           data: { files },
@@ -152,7 +158,7 @@ export const robot = (app: Probot) => {
         try {
           const res = await chat?.codeReview(patch);
 
-          if (!!res && (res.search('No issues found') === -1) ) {
+          if (!!res && res.search('No issues found') === -1) {
             await context.octokit.pulls.createReviewComment({
               repo: repo.repo,
               owner: repo.owner,
@@ -169,10 +175,7 @@ export const robot = (app: Probot) => {
       }
 
       console.timeEnd('gpt cost');
-      console.info(
-        'successfully reviewed',
-        pull_request.html_url
-      );
+      console.info('successfully reviewed', pull_request.html_url);
 
       return 'success';
     }
