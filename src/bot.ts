@@ -59,12 +59,21 @@ export const robot = (app: Probot) => {
 
       let pull_request;
 
-      if (context.name === 'pull_request' && context.payload.pull_request) {
-        pull_request = context.payload.pull_request;
-      } else if (
+      const is_pr =
+        context.name === 'pull_request' && context.payload.pull_request;
+
+      const is_pr_opened = is_pr && context.payload.action === 'opened';
+
+      const is_pr_labeled = is_pr && context.payload.action === 'labeled';
+
+      const is_pr_comment_created =
         context.name === 'issue_comment' &&
-        context.payload.issue.pull_request
-      ) {
+        context.payload.action === 'created' &&
+        context.payload.issue.pull_request;
+
+      if (is_pr) {
+        pull_request = context.payload.pull_request;
+      } else if (is_pr_comment_created) {
         const pr_from_api = await context.octokit.pulls.get({
           owner: repo.owner,
           repo: repo.repo,
@@ -74,19 +83,19 @@ export const robot = (app: Probot) => {
         console.log('Retrieved pull_request data from the API:', pull_request);
       }
 
-      if (!pull_request) {
+      if (
+        !pull_request ||
+        pull_request.state === 'closed' ||
+        pull_request.locked
+      ) {
         console.log('pull_request is undefined');
         return 'pull_request is undefined';
-      }
-
-      if (pull_request.state === 'closed' || pull_request.locked) {
-        console.log('invalid event payload');
-        return 'invalid event payload';
       }
 
       const target_label = process.env.TARGET_LABEL;
       if (
         target_label &&
+        is_pr_labeled &&
         (!pull_request.labels?.length ||
           pull_request.labels.every((label) => label.name !== target_label))
       ) {
@@ -103,13 +112,13 @@ export const robot = (app: Probot) => {
 
       let { files: changedFiles, commits } = data.data;
 
-      // `synchronize` belongs to the 'pull_request' event
-      // `created` belongs to the `issue_comment` event
-      // `labeled` belongs to the `pull_request` event
+      const ignoreList = (process.env.IGNORE || process.env.ignore || '')
+        .split('\n')
+        .filter((v) => v !== '');
+
       if (
-        (context.payload.action === 'synchronize' ||
-          context.payload.action === 'created' ||
-          context.payload.action === 'labeled') &&
+        is_pr &&
+        context.payload.action === 'synchronize' &&
         commits &&
         commits.length >= 2
       ) {
@@ -121,16 +130,18 @@ export const robot = (app: Probot) => {
           base: commits[commits.length - 2].sha,
           head: commits[commits.length - 1].sha,
         });
-
-        const ignoreList = (process.env.IGNORE || process.env.ignore || '')
-          .split('\n')
-          .filter((v) => v !== '');
-
         const filesNames = files?.map((file) => file.filename) || [];
         changedFiles = changedFiles?.filter(
           (file) =>
             filesNames.includes(file.filename) &&
             !ignoreList.includes(file.filename)
+        );
+      } else if (
+        (is_pr_opened || is_pr_labeled || is_pr_comment_created) &&
+        commits
+      ) {
+        changedFiles = changedFiles?.filter(
+          (file) => !ignoreList.includes(file.filename)
         );
       }
 
